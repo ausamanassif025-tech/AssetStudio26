@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -43,8 +43,6 @@ namespace AssetStudio
             m_MipMap = m_MipCount > 1;
             m_ImageCount = 1;
 
-            //var imgActualDataSize = GetImageDataSize(m_TextureFormat);
-            //var mipmapSize = (int)(m_Texture2DArray.m_DataSize / m_Texture2DArray.m_Depth - imgActualDataSize);
             m_CompleteImageSize = (uint)(m_Texture2DArray.m_DataSize / m_Texture2DArray.m_Depth);
             var offset = layer * m_CompleteImageSize + m_Texture2DArray.image_data.Offset;
             
@@ -89,7 +87,7 @@ namespace AssetStudio
                 reader.AlignStream();
                 var m_PriorityLevel = reader.ReadInt32();
                 var m_UploadedMode = reader.ReadInt32();
-                m_DataStreamData = new StreamingInfo //sample is needed
+                m_DataStreamData = new StreamingInfo
                 {
                     offset = 0,
                     size = reader.ReadUInt32(),
@@ -100,7 +98,7 @@ namespace AssetStudio
             if (version.IsTuanjie && version >= (2022, 3, 62)) //2022.3.62t1(1.7.0) and up
             {
                 var m_TextureManagerMultiFormatSettingSize = reader.ReadInt32();
-                reader.Position += m_TextureManagerMultiFormatSettingSize; //skip byte[] m_TextureManagerMultiFormatSetting
+                reader.Position += m_TextureManagerMultiFormatSettingSize;
                 reader.AlignStream();
             }
             if (version < (5, 2)) //5.2 down
@@ -111,6 +109,15 @@ namespace AssetStudio
             {
                 m_MipCount = reader.ReadInt32();
             }
+
+            bool isFreeFireSpoofed = false;
+            if ((int)m_TextureFormat == 0 && m_MipCount > 10)
+            {
+                isFreeFireSpoofed = true;
+                m_TextureFormat = (TextureFormat)m_MipCount;
+                m_MipCount = 1;
+            }
+
             if (version >= (2, 6)) //2.6.0 and up
             {
                 var m_IsReadable = reader.ReadBoolean();
@@ -174,19 +181,31 @@ namespace AssetStudio
                 m_StreamData = new StreamingInfo(reader);
             }
 
+            if (isFreeFireSpoofed)
+            {
+                if (m_StreamData != null && !string.IsNullOrEmpty(m_StreamData.path))
+                {
+                    m_StreamData.offset += 152;
+                    m_StreamData.size -= 152;
+                }
+                else
+                {
+                    reader.BaseStream.Position += 152;
+                    image_data_size -= 152;
+                }
+            }
+
             image_data = !string.IsNullOrEmpty(m_StreamData?.path)
                 ? new ResourceReader(m_StreamData.path, assetsFile, m_StreamData.offset, m_StreamData.size)
                 : new ResourceReader(reader, reader.BaseStream.Position, image_data_size);
         }
 
-        // https://docs.unity3d.com/2023.3/Documentation/Manual/class-TextureImporterOverride.html
         private int GetImageDataSize(TextureFormat textureFormat)
         {
             var imgDataSize = m_Width * m_Height;
             switch (textureFormat)
             {
                 case TextureFormat.ASTC_RGBA_5x5:
-                    // https://registry.khronos.org/webgl/extensions/WEBGL_compressed_texture_astc/
                     imgDataSize = (int)(MathF.Floor((m_Width + 4) / 5f) * MathF.Floor((m_Height + 4) / 5f) * 16);
                     break;
                 case TextureFormat.ASTC_RGBA_6x6:

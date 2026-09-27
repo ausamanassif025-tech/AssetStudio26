@@ -110,10 +110,8 @@ namespace AssetStudio
                 m_MipCount = reader.ReadInt32();
             }
 
-            bool isFreeFireSpoofed = false;
             if ((int)m_TextureFormat == 0 && m_MipCount > 10)
             {
-                isFreeFireSpoofed = true;
                 m_TextureFormat = (TextureFormat)m_MipCount;
                 m_MipCount = 1;
             }
@@ -181,25 +179,22 @@ namespace AssetStudio
                 m_StreamData = new StreamingInfo(reader);
             }
 
-            if (isFreeFireSpoofed)
+            if (m_StreamData != null && !string.IsNullOrEmpty(m_StreamData.path))
             {
-                if (m_StreamData != null && !string.IsNullOrEmpty(m_StreamData.path))
+                if (m_StreamData.size > m_CompleteImageSize)
                 {
-                    if (m_StreamData.size > m_CompleteImageSize)
-                    {
-                        uint headerSize = (uint)(m_StreamData.size - m_CompleteImageSize);
-                        m_StreamData.offset += headerSize;
-                        m_StreamData.size = m_CompleteImageSize;
-                    }
+                    uint headerSize = (uint)(m_StreamData.size - m_CompleteImageSize);
+                    m_StreamData.offset += headerSize;
+                    m_StreamData.size = m_CompleteImageSize;
                 }
-                else
+            }
+            else
+            {
+                if (image_data_size > m_CompleteImageSize)
                 {
-                    if (image_data_size > m_CompleteImageSize)
-                    {
-                        int headerSize = image_data_size - (int)m_CompleteImageSize;
-                        reader.BaseStream.Position += headerSize;
-                        image_data_size = (int)m_CompleteImageSize;
-                    }
+                    int headerSize = image_data_size - (int)m_CompleteImageSize;
+                    reader.BaseStream.Position += headerSize;
+                    image_data_size = (int)m_CompleteImageSize;
                 }
             }
 

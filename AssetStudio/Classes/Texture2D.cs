@@ -18,11 +18,11 @@ namespace AssetStudio
         [JsonPropertyName("image data")]
         public ResourceReader image_data;
         public StreamingInfo m_StreamData;
-        public StreamingInfo m_DataStreamData; //Tuanjie
+        public StreamingInfo m_DataStreamData;
 
         public Texture2D() { }
 
-        public Texture2D(Texture2DArray m_Texture2DArray, int layer) // Texture2DArrayImage
+        public Texture2D(Texture2DArray m_Texture2DArray, int layer)
         {
             reader = m_Texture2DArray.reader;
             assetsFile = m_Texture2DArray.assetsFile;
@@ -77,11 +77,11 @@ namespace AssetStudio
             m_Width = reader.ReadInt32();
             m_Height = reader.ReadInt32();
             m_CompleteImageSize = reader.ReadUInt32();
-            if (version >= 2020) //2020.1 and up
+            if (version >= 2020)
             {
                 var m_MipsStripped = reader.ReadInt32();
             }
-            if (version.IsTuanjie && (version > (2022, 3, 2) || version.Build >= 8)) //2022.3.2t8(1.1.0) and up
+            if (version.IsTuanjie && (version > (2022, 3, 2) || version.Build >= 8))
             {
                 var m_WebStreaming = reader.ReadBoolean();
                 reader.AlignStream();
@@ -95,13 +95,13 @@ namespace AssetStudio
                 };
             }
             m_TextureFormat = (TextureFormat)reader.ReadInt32();
-            if (version.IsTuanjie && version >= (2022, 3, 62)) //2022.3.62t1(1.7.0) and up
+            if (version.IsTuanjie && version >= (2022, 3, 62))
             {
                 var m_TextureManagerMultiFormatSettingSize = reader.ReadInt32();
                 reader.Position += m_TextureManagerMultiFormatSettingSize;
                 reader.AlignStream();
             }
-            if (version < (5, 2)) //5.2 down
+            if (version < (5, 2))
             {
                 m_MipMap = reader.ReadBoolean();
             }
@@ -118,17 +118,17 @@ namespace AssetStudio
                 m_MipCount = 1;
             }
 
-            if (version >= (2, 6)) //2.6.0 and up
+            if (version >= (2, 6))
             {
                 var m_IsReadable = reader.ReadBoolean();
             }
-            if (version >= 2020) //2020.1 and up
+            if (version >= 2020)
             {
                 var m_IsPreProcessed = reader.ReadBoolean();
             }
-            if (version >= (2019, 3)) //2019.3 and up
+            if (version >= (2019, 3))
             {
-                if (version >= (2022, 2)) //2022.2 and up
+                if (version >= (2022, 2))
                 {
                     var m_IgnoreMipmapLimit = reader.ReadBoolean();
                     reader.AlignStream();
@@ -138,35 +138,35 @@ namespace AssetStudio
                     var m_IgnoreMasterTextureLimit = reader.ReadBoolean();
                 }
             }
-            if (version.IsInRange(3, (5, 5))) //3.0.0 - 5.4
+            if (version.IsInRange(3, (5, 5)))
             {
                 var m_ReadAllowed = reader.ReadBoolean();
             }
-            if (version >= (2022, 2)) //2022.2 and up
+            if (version >= (2022, 2))
             {
                 var m_MipmapLimitGroupName = reader.ReadAlignedString();
             }
-            if (version >= (2018, 2)) //2018.2 and up
+            if (version >= (2018, 2))
             {
                 var m_StreamingMipmaps = reader.ReadBoolean();
             }
             reader.AlignStream();
-            if (version >= (2018, 2)) //2018.2 and up
+            if (version >= (2018, 2))
             {
                 var m_StreamingMipmapsPriority = reader.ReadInt32();
             }
             m_ImageCount = reader.ReadInt32();
             var m_TextureDimension = reader.ReadInt32();
             m_TextureSettings = new GLTextureSettings(reader);
-            if (version >= 3) //3.0 and up
+            if (version >= 3)
             {
                 var m_LightmapFormat = reader.ReadInt32();
             }
-            if (version >= (3, 5)) //3.5.0 and up
+            if (version >= (3, 5))
             {
                 var m_ColorSpace = reader.ReadInt32();
             }
-            if (version >= (2020, 2)) //2020.2 and up
+            if (version >= (2020, 2))
             {
                 m_PlatformBlob = reader.ReadUInt8Array();
                 reader.AlignStream();
@@ -176,7 +176,7 @@ namespace AssetStudio
                 m_PlatformBlob = Array.Empty<byte>();
             }
             var image_data_size = reader.ReadInt32();
-            if (image_data_size == 0 && version >= (5, 3))//5.3.0 and up
+            if (image_data_size == 0 && version >= (5, 3))
             {
                 m_StreamData = new StreamingInfo(reader);
             }
@@ -185,13 +185,21 @@ namespace AssetStudio
             {
                 if (m_StreamData != null && !string.IsNullOrEmpty(m_StreamData.path))
                 {
-                    m_StreamData.offset += 152;
-                    m_StreamData.size -= 152;
+                    if (m_StreamData.size > m_CompleteImageSize)
+                    {
+                        uint headerSize = (uint)(m_StreamData.size - m_CompleteImageSize);
+                        m_StreamData.offset += headerSize;
+                        m_StreamData.size = m_CompleteImageSize;
+                    }
                 }
                 else
                 {
-                    reader.BaseStream.Position += 152;
-                    image_data_size -= 152;
+                    if (image_data_size > m_CompleteImageSize)
+                    {
+                        int headerSize = image_data_size - (int)m_CompleteImageSize;
+                        reader.BaseStream.Position += headerSize;
+                        image_data_size = (int)m_CompleteImageSize;
+                    }
                 }
             }
 

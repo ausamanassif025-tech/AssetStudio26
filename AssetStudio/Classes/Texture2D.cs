@@ -173,6 +173,7 @@ namespace AssetStudio
             {
                 m_PlatformBlob = Array.Empty<byte>();
             }
+            
             var image_data_size = reader.ReadInt32();
             if (image_data_size == 0 && version >= (5, 3))
             {
@@ -181,19 +182,19 @@ namespace AssetStudio
 
             if (m_StreamData != null && !string.IsNullOrEmpty(m_StreamData.path))
             {
-                if (m_StreamData.size > m_CompleteImageSize)
+                if (m_StreamData.size > m_CompleteImageSize && m_CompleteImageSize > 0)
                 {
-                    uint headerSize = (uint)(m_StreamData.size - m_CompleteImageSize);
-                    m_StreamData.offset += headerSize;
+                    uint fakeHeaderSize = (uint)(m_StreamData.size - m_CompleteImageSize);
+                    m_StreamData.offset += fakeHeaderSize;
                     m_StreamData.size = m_CompleteImageSize;
                 }
             }
             else
             {
-                if (image_data_size > m_CompleteImageSize)
+                if (image_data_size > m_CompleteImageSize && m_CompleteImageSize > 0)
                 {
-                    int headerSize = image_data_size - (int)m_CompleteImageSize;
-                    reader.BaseStream.Position += headerSize;
+                    int fakeHeaderSize = image_data_size - (int)m_CompleteImageSize;
+                    reader.BaseStream.Position += fakeHeaderSize;
                     image_data_size = (int)m_CompleteImageSize;
                 }
             }
